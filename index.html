@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Input Data - Persistent</title>
+
+    <!-- Biar pas dibuka di HP keliatan kayak aplikasi native -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="icon" type="image/png" href="https://img.icons8.com/color/48/todo-list.png">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 30px rgba(26, 41, 128, 0.3);
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+            margin-top: 6px;
+            font-weight: 300;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px 16px;
+            border-radius: 14px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s;
+            border-top: 5px solid #1a2980;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+        }
+
+        .card h3 {
+            font-size: 14px;
+            color: #888;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .card h2 {
+            font-size: 28px;
+            color: #1a2980;
+            font-weight: 700;
+        }
+
+        .card:nth-child(2) {
+            border-top-color: #26d0ce;
+        }
+        .card:nth-child(2) h2 {
+            color: #26d0ce;
+        }
+        .card:nth-child(3) {
+            border-top-color: #f7971e;
+        }
+        .card:nth-child(3) h2 {
+            color: #f7971e;
+        }
+
+        .container {
+            background: white;
+            padding: 28px 24px;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 18px;
+            margin-bottom: 22px;
+        }
+
+        label {
+            font-weight: 600;
+            font-size: 13px;
+            color: #333;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1.5px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            background: #fafbfc;
+            transition: 0.25s ease;
+            font-family: inherit;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: #1a2980;
+            outline: none;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(26, 41, 128, 0.08);
+        }
+
+        textarea {
+            height: 44px;
+            resize: vertical;
+        }
+
+        input[readonly] {
+            background: #f0f2f5;
+            font-weight: 600;
+            color: #1a2980;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 14px;
+            color: white;
+            cursor: pointer;
+            transition: 0.25s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .save {
+            background: linear-gradient(135deg, #1a2980, #26d0ce);
+        }
+        .pdf {
+            background: linear-gradient(135deg, #c0392b, #e74c3c);
+        }
+        .excel {
+            background: linear-gradient(135deg, #1e7e34, #28a745);
+        }
+        .reset {
+            background: linear-gradient(135deg, #e67e22, #f39c12);
+        }
+        .backup {
+            background: linear-gradient(135deg, #8e44ad, #9b59b6);
+        }
+        .restore {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+        }
+
+        .filter-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 18px;
+            padding: 16px;
+            background: #f8f9fc;
+            border-radius: 12px;
+            border: 1px solid #e8ecf1;
+        }
+
+        .filter-group label {
+            margin-bottom: 0;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .filter-group select {
+            width: auto;
+            min-width: 120px;
+            padding: 8px 14px;
+            background: white;
+        }
+
+        .filter-group .btn-filter {
+            padding: 8px 20px;
+            background: #1a2980;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.25s;
+        }
+
+        .filter-group .btn-filter:hover {
+            background: #26d0ce;
+            transform: translateY(-2px);
+        }
+
+        #cari {
+            width: 100%;
+            max-width: 320px;
+            padding: 10px 16px;
+            border-radius: 30px;
+            border: 1.5px solid #e0e0e0;
+            margin-bottom: 18px;
+            font-size: 14px;
+            background: #fafbfc;
+            transition: 0.25s;
+        }
+
+        #cari:focus {
+            border-color: #1a2980;
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(26, 41, 128, 0.08);
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid #eee;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            min-width: 700px;
+        }
+
+        th {
+            background: #1a2980;
+            color: white;
+            padding: 12px 10px;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 10px 10px;
+            border-bottom: 1px solid #f0f0f0;
+            text-align: center;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8f9fc;
+        }
+
+        tr:hover {
+            background-color: #eef2ff;
+        }
+
+        .hapus {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .hapus:hover {
+            background: #c0392b;
+            transform: scale(1.03);
+        }
+
+        .badge-filter {
+            background: #1a2980;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 22px;
+            }
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            .dashboard {
+                grid-template-columns: 1fr 1fr;
+            }
+            .card h2 {
+                font-size: 20px;
+            }
+            .btn-group .btn {
+                flex: 1 1 100%;
+                justify-content: center;
+            }
+            #cari {
+                max-width: 100%;
+            }
+            .filter-group select {
+                width: 100%;
+            }
+            .filter-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>📦 SMART INPUT DATA</h1>
+        <p>Aplikasi Stok Barang Toko Cat</p>
+    </div>
+
+    <div class="dashboard">
+        <div class="card">
+            <h3>Total Transaksi</h3>
+            <h2 id="totalTransaksi">0</h2>
+        </div>
+        <div class="card">
+            <h3>Total Barang (Qty)</h3>
+            <h2 id="totalBarang">0</h2>
+        </div>
+        <div class="card">
+            <h3>Total Nilai Omset</h3>
+            <h2 id="totalNilai">Rp 0</h2>
+        </div>
+    </div>
+
+    <div class="container">
+
+        <div class="grid">
+            <div>
+                <label>📅 Tanggal Transaksi</label>
+                <input type="date" id="tanggal" oninput="saveDraft()">
+            </div>
+            <div>
+                <label>🛢️ Nama Barang</label>
+                <select id="barang" onchange="saveDraft()">
+                    <option>Splesh</option><option>EcoClean</option><option>Property Interior</option>
+                    <option>Rain Block</option><option>Tropic</option><option>Diamond Shield</option>
+                    <option>Anti Mosquito</option><option>Property Gloss</option><option>OK 100</option>
+                </select>
+            </div>
+            <div>
+                <label>🧪 Base Barang</label>
+                <select id="base" onchange="saveDraft()">
+                    <option>Pastel</option><option>Ultra Pastel</option><option>Accent</option>
+                    <option>Ultra Accent</option><option>Deep</option><option>Tint</option>
+                </select>
+            </div>
+            <div>
+                <label>📦 Packaging</label>
+                <select id="packaging" onchange="saveDraft()">
+                    <option>Kaleng</option><option>Galon</option><option>Pail</option>
+                </select>
+            </div>
+            <div>
+                <label>🔢 Jumlah Barang (Qty)</label>
+                <input type="number" id="jumlah" oninput="hitungTotal(); saveDraft()" placeholder="0">
+            </div>
+            <div>
+                <label>💰 Harga Satuan (Rp)</label>
+                <input type="number" id="harga" oninput="hitungTotal(); saveDraft()" placeholder="0">
+            </div>
+            <div>
+                <label>🧾 Total Harga</label>
+                <input type="text" id="totalHarga" readonly style="background: #eef2f7; font-weight:700;">
+            </div>
+            <div>
+                <label>📝 Keterangan</label>
+                <textarea id="keterangan" oninput="saveDraft()" placeholder="Catatan..."></textarea>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn save" onclick="simpanData()">💾 Simpan</button>
+            <button class="btn backup" onclick="backupData()">📥 Backup Data</button>
+            <button class="btn restore" onclick="restoreData()">📤 Restore Data</button>
+            <button class="btn pdf" onclick="downloadPDF()">⬇️ Export PDF</button>
+            <button class="btn excel" onclick="downloadExcel()">⬇️ Export Excel</button>
+            <button class="btn reset" onclick="resetData()">🔄 Reset Semua</button>
+        </div>
+
+        <!-- FILTER BULAN & TAHUN -->
+        <div class="filter-group">
+            <label>📆 Filter Bulan & Tahun:</label>
+            <select id="filterBulan" onchange="simpanFilter()">
+                <option value="all">Semua Bulan</option>
+                <option value="01">Januari</option>
+                <option value="02">Februari</option>
+                <option value="03">Maret</option>
+                <option value="04">April</option>
+                <option value="05">Mei</option>
+                <option value="06">Juni</option>
+                <option value="07">Juli</option>
+                <option value="08">Agustus</option>
+                <option value="09">September</option>
+                <option value="10">Oktober</option>
+                <option value="11">November</option>
+                <option value="12">Desember</option>
+            </select>
+            <select id="filterTahun" onchange="simpanFilter()">
+                <option value="all">Semua Tahun</option>
+            </select>
+            <button class="btn-filter" onclick="terapkanFilter()">🔍 Tampilkan</button>
+            <button class="btn-filter" onclick="resetFilter()" style="background:#e67e22;">↺ Reset Filter</button>
+            <span id="infoFilter" style="font-size:13px; color:#888; margin-left:auto;"></span>
+        </div>
+
+        <input type="text" id="cari" placeholder="🔍 Cari data..." onkeyup="cariData()">
+
+        <div class="table-responsive">
+            <table id="tabel">
+                <thead>
+                    <tr>
+                        <th>No</th><th>Tanggal</th><th>Barang</th><th>Base</th>
+                        <th>Packaging</th><th>Qty</th><th>Harga</th>
+                        <th>Total</th><th>Keterangan</th><th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <script>
+        let dataBarang = [];
+        let dataFiltered = [];
+
+        // === FITUR FILTER TERSIMPAN ===
+        function simpanFilter() {
+            const bulan = document.getElementById('filterBulan').value;
+            const tahun = document.getElementById('filterTahun').value;
+            localStorage.setItem("filterBulan", bulan);
+            localStorage.setItem("filterTahun", tahun);
+        }
+
+        function muatFilter() {
+            const bulan = localStorage.getItem("filterBulan");
+            const tahun = localStorage.getItem("filterTahun");
+            if (bulan) document.getElementById('filterBulan').value = bulan;
+            if (tahun) document.getElementById('filterTahun').value = tahun;
+        }
+
+        // Isi dropdown tahun otomatis
+        function isiTahun() {
+            const tahunSelect = document.getElementById('filterTahun');
+            const tahunSekarang = new Date().getFullYear();
+            for (let tahun = tahunSekarang; tahun >= tahunSekarang - 5; tahun--) {
+                const option = document.createElement('option');
+                option.value = tahun;
+                option.textContent = tahun;
+                tahunSelect.appendChild(option);
+            }
+        }
+
+        function saveDraft() {
+            const draft = {
+                tanggal: document.getElementById('tanggal').value,
+                barang: document.getElementById('barang').value,
+                base: document.getElementById('base').value,
+                packaging: document.getElementById('packaging').value,
+                jumlah: document.getElementById('jumlah').value,
+                harga: document.getElementById('harga').value,
+                keterangan: document.getElementById('keterangan').value
+            };
+            localStorage.setItem("draftStok", JSON.stringify(draft));
+        }
+
+        window.onbeforeunload = function() {
+            return "Data yang sedang Anda isi mungkin belum disimpan. Yakin ingin keluar?";
+        };
+
+        function rupiah(angka) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
+        }
+
+        function hitungTotal() {
+            const qty = Number(document.getElementById('jumlah').value) || 0;
+            const harga = Number(document.getElementById('harga').value) || 0;
+            document.getElementById('totalHarga').value = rupiah(qty * harga);
+        }
+
+        function simpanData() {
+            const tgl = document.getElementById('tanggal');
+            const jml = document.getElementById('jumlah');
+            const hrg = document.getElementById('harga');
+
+            if (!tgl.value || !jml.value || !hrg.value) {
+                alert("⚠️ Lengkapi data terlebih dahulu!");
+                return;
+            }
+
+            dataBarang.push({
+                tanggal: tgl.value,
+                barang: document.getElementById('barang').value,
+                base: document.getElementById('base').value,
+                packaging: document.getElementById('packaging').value,
+                jumlah: Number(jml.value),
+                harga: Number(hrg.value),
+                total: Number(jml.value) * Number(hrg.value),
+                keterangan: document.getElementById('keterangan').value
+            });
+
+            localStorage.setItem("stokBarang", JSON.stringify(dataBarang));
+            localStorage.removeItem("draftStok");
+
+            document.getElementById('jumlah').value = "";
+            document.getElementById('harga').value = "";
+            document.getElementById('totalHarga').value = "";
+            document.getElementById('keterangan').value = "";
+
+            terapkanFilter();
+        }
+
+        // ===== FITUR BACKUP & RESTORE =====
+        function backupData() {
+            const data = localStorage.getItem("stokBarang");
+            if (!data || JSON.parse(data).length === 0) {
+                alert("⚠️ Belum ada data untuk di-backup!");
+                return;
+            }
+            const blob = new Blob([data], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `backup_stok_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function restoreData() {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = ".json";
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        if (!Array.isArray(data)) throw new Error("Format tidak valid");
+                        if (confirm(`📥 Restore ${data.length} data? Data saat ini akan diganti!`)) {
+                            localStorage.setItem("stokBarang", JSON.stringify(data));
+                            dataBarang = data;
+                            terapkanFilter();
+                            alert(`✅ Restore berhasil! ${data.length} data dimuat.`);
+                        }
+                    } catch(e) {
+                        alert("❌ File tidak valid! Pastikan file backup JSON.");
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        function terapkanFilter() {
+            const bulan = document.getElementById('filterBulan').value;
+            const tahun = document.getElementById('filterTahun').value;
+
+            dataFiltered = dataBarang.filter(d => {
+                const tgl = new Date(d.tanggal);
+                const bln = String(tgl.getMonth() + 1).padStart(2, '0');
+                const thn = tgl.getFullYear();
+                let match = true;
+                if (bulan !== 'all') match = match && (bln === bulan);
+                if (tahun !== 'all') match = match && (thn === parseInt(tahun));
+                return match;
+            });
+
+            // Update info filter
+            let info = '';
+            if (bulan !== 'all') {
+                const namaBulan = document.getElementById('filterBulan').selectedOptions[0].text;
+                info += namaBulan;
+            }
+            if (tahun !== 'all') {
+                if (info) info += ' ';
+                info += tahun;
+            }
+            if (info) {
+                document.getElementById('infoFilter').innerHTML = '📌 Menampilkan: <span class="badge-filter">' + info + '</span>';
+            } else {
+                document.getElementById('infoFilter').innerHTML = '📌 Menampilkan semua data';
+            }
+
+            tampilkanData();
+        }
+
+        function resetFilter() {
+            document.getElementById('filterBulan').value = 'all';
+            document.getElementById('filterTahun').value = 'all';
+            simpanFilter();
+            terapkanFilter();
+        }
+
+        function tampilkanData() {
+            let tbody = document.querySelector("#tabel tbody");
+            tbody.innerHTML = "";
+            let totalQty = 0,
+                totalNilai = 0;
+
+            const data = dataFiltered.length > 0 ? dataFiltered : dataBarang;
+
+            data.forEach((d, i) => {
+                totalQty += d.jumlah;
+                totalNilai += d.total;
+                tbody.innerHTML += `<tr>
+                        <td>${i + 1}</td>
+                        <td>${d.tanggal}</td>
+                        <td>${d.barang}</td>
+                        <td>${d.base}</td>
+                        <td>${d.packaging}</td>
+                        <td>${d.jumlah}</td>
+                        <td>${rupiah(d.harga)}</td>
+                        <td>${rupiah(d.total)}</td>
+                        <td>${d.keterangan || '-'}</td>
+                        <td><button class="hapus" onclick="hapusData(${i})">Hapus</button></td>
+                    </tr>`;
+            });
+
+            document.getElementById("totalTransaksi").innerText = data.length;
+            document.getElementById("totalBarang").innerText = totalQty;
+            document.getElementById("totalNilai").innerText = rupiah(totalNilai);
+        }
+
+        function hapusData(i) {
+            if (confirm("Yakin hapus data ini?")) {
+                // Hapus dari dataBarang asli
+                const data = dataFiltered.length > 0 ? dataFiltered : dataBarang;
+                const itemToDelete = data[i];
+                const indexAsli = dataBarang.indexOf(itemToDelete);
+                if (indexAsli !== -1) {
+                    dataBarang.splice(indexAsli, 1);
+                }
+                localStorage.setItem("stokBarang", JSON.stringify(dataBarang));
+                terapkanFilter();
+            }
+        }
+
+        function resetData() {
+            if (confirm("⚠️ Hapus semua data permanen?")) {
+                dataBarang = [];
+                localStorage.removeItem("stokBarang");
+                localStorage.removeItem("draftStok");
+                dataFiltered = [];
+                terapkanFilter();
+            }
+        }
+
+        function cariData() {
+            let filter = document.getElementById("cari").value.toUpperCase();
+            document.querySelectorAll("#tabel tbody tr").forEach(row => {
+                row.style.display = row.innerText.toUpperCase().includes(filter) ? "" : "none";
+            });
+        }
+
+        function downloadExcel() {
+            const data = dataFiltered.length > 0 ? dataFiltered : dataBarang;
+            if (data.length === 0) {
+                alert("⚠️ Tidak ada data untuk diexport!");
+                return;
+            }
+            let ws = XLSX.utils.json_to_sheet(data);
+            let wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Data Stok");
+            XLSX.writeFile(wb, "SmartInputData_Stok.xlsx");
+        }
+
+        async function downloadPDF() {
+            const data = dataFiltered.length > 0 ? dataFiltered : dataBarang;
+            if (data.length === 0) {
+                alert("⚠️ Tidak ada data untuk diexport!");
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            let doc = new jsPDF();
+
+            const bulan = document.getElementById('filterBulan').value;
+            const tahun = document.getElementById('filterTahun').value;
+            let judulFilter = '';
+            if (bulan !== 'all') {
+                const namaBulan = document.getElementById('filterBulan').selectedOptions[0].text;
+                judulFilter += namaBulan;
+            }
+            if (tahun !== 'all') {
+                if (judulFilter) judulFilter += ' ';
+                judulFilter += tahun;
+            }
+            if (judulFilter) judulFilter = ' - ' + judulFilter;
+
+            doc.text("LAPORAN STOK - TOTAL NILAI OMSET" + judulFilter, 14, 15);
+
+            let totalOmset = 0;
+            data.forEach(d => totalOmset += d.total);
+            doc.text("Total Omset: " + rupiah(totalOmset), 14, 22);
+
+            doc.autoTable({
+                head: [
+                    ["No", "Tanggal", "Barang", "Base", "Packaging", "Qty", "Harga", "Total", "Keterangan"]
+                ],
+                body: data.map((d, i) => [i + 1, d.tanggal, d.barang, d.base, d.packaging, d.jumlah, rupiah(d
+                    .harga), rupiah(d.total), d.keterangan]),
+                startY: 30
+            });
+            doc.save("Laporan_Stok" + (judulFilter ? '_' + judulFilter.replace(/ - /g, '_') : '') + ".pdf");
+        }
+
+        window.onload = function() {
+            isiTahun();
+            muatFilter();
+
+            let data = localStorage.getItem("stokBarang");
+            if (data) {
+                dataBarang = JSON.parse(data);
+                terapkanFilter();
+            } else {
+                document.getElementById('tanggal').valueAsDate = new Date();
+                terapkanFilter();
+            }
+
+            let draft = localStorage.getItem("draftStok");
+            if (draft) {
+                let d = JSON.parse(draft);
+                document.getElementById('tanggal').value = d.tanggal;
+                document.getElementById('barang').value = d.barang;
+                document.getElementById('base').value = d.base;
+                document.getElementById('packaging').value = d.packaging;
+                document.getElementById('jumlah').value = d.jumlah;
+                document.getElementById('harga').value = d.harga;
+                document.getElementById('keterangan').value = d.keterangan;
+                hitungTotal();
+            }
+        }
+    </script>
+
+</body>
+</html>
